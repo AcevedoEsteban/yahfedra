@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
@@ -17,6 +18,19 @@ async function bootstrap() {
   });
   app.use(cookieParser());
 
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      exceptionFactory: (errors) => {
+        const formattedErrors = errors.reduce((acc, error) => {
+          acc[error.property] = Object.values(error.constraints).join(',  ');
+          return acc;
+        }, {});
+        throw new BadRequestException(formattedErrors);
+      },
+    }),
+  );
   //edit APP_URL here
   await app.listen(3000);
 }
